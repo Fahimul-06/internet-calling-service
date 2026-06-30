@@ -1,0 +1,13 @@
+{
+  "name": "user-dial-calling-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "start:backend": "cd backend && npm install && npm start",
+    "check:backend": "cd backend && npm install && npm run check"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}

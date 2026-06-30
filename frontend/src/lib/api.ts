@@ -1,7 +1,18 @@
-const configuredApiUrl = import.meta.env.VITE_API_URL;
+const configuredApiUrl = import.meta.env.VITE_API_URL || '';
+const configuredSocketUrl = import.meta.env.VITE_SOCKET_URL || '';
 
-export const API_BASE_URL = (configuredApiUrl || '/api').replace(/\/$/, '');
-export const SOCKET_BASE_URL = API_BASE_URL.endsWith('/api') ? API_BASE_URL.slice(0, -4) : API_BASE_URL;
+function normalizeBaseUrl(value: string, fallback: string) {
+  const cleaned = (value || fallback).replace(/\/$/, '');
+  return cleaned;
+}
+
+const rawApiBaseUrl = normalizeBaseUrl(configuredApiUrl, '/api');
+
+export const API_BASE_URL = rawApiBaseUrl.endsWith('/api') ? rawApiBaseUrl : `${rawApiBaseUrl}/api`;
+export const SOCKET_BASE_URL = normalizeBaseUrl(
+  configuredSocketUrl || rawApiBaseUrl.replace(/\/api$/, ''),
+  window.location.origin,
+);
 
 export type User = {
   id: string;
