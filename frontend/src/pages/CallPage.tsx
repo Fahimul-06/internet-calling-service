@@ -25,6 +25,7 @@ export default function CallPage() {
       navigate('/login');
       return;
     }
+    const activeSocket = socket;
 
     async function start() {
       try {
@@ -44,7 +45,7 @@ export default function CallPage() {
         localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
 
         pc.onicecandidate = (event) => {
-          if (event.candidate) socket.emit('call:signal', { roomId, type: 'candidate', payload: event.candidate });
+          if (event.candidate) activeSocket.emit('call:signal', { roomId, type: 'candidate', payload: event.candidate });
         };
         pc.ontrack = (event) => {
           if (remoteAudioRef.current) {
@@ -61,7 +62,7 @@ export default function CallPage() {
           if (state === 'closed') setStatus('Call ended');
         };
 
-        socket.emit('call:join', { roomId }, (ack: { ok: boolean; message?: string }) => {
+        activeSocket.emit('call:join', { roomId }, (ack: { ok: boolean; message?: string }) => {
           if (!ack?.ok) setError(ack?.message || 'Could not join call');
           else setStatus(data.room.role === 'caller' ? 'Ringing...' : 'Joining call...');
         });
@@ -78,7 +79,7 @@ export default function CallPage() {
           await pc.setRemoteDescription(new RTCSessionDescription(signal.payload));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          socket.emit('call:signal', { roomId, type: 'answer', payload: answer });
+          activeSocket.emit('call:signal', { roomId, type: 'answer', payload: answer });
         }
         if (signal.type === 'answer') {
           await pc.setRemoteDescription(new RTCSessionDescription(signal.payload));
@@ -97,22 +98,22 @@ export default function CallPage() {
       madeOfferRef.current = true;
       const offer = await pc.createOffer({ offerToReceiveAudio: true });
       await pc.setLocalDescription(offer);
-      socket.emit('call:signal', { roomId, type: 'offer', payload: offer });
+      activeSocket.emit('call:signal', { roomId, type: 'offer', payload: offer });
       setStatus('Connecting...');
     }
 
-    socket.on('call:signal', handleSignal);
-    socket.on('call:peer-joined', createOfferWhenReady);
-    socket.on('call:ended', () => endLocal(false));
-    socket.on('call:peer-left', () => setStatus('Peer left the call'));
+    activeSocket.on('call:signal', handleSignal);
+    activeSocket.on('call:peer-joined', createOfferWhenReady);
+    activeSocket.on('call:ended', () => endLocal(false));
+    activeSocket.on('call:peer-left', () => setStatus('Peer left the call'));
     start();
 
     return () => {
       closed = true;
-      socket.off('call:signal', handleSignal);
-      socket.off('call:peer-joined', createOfferWhenReady);
-      socket.off('call:ended');
-      socket.off('call:peer-left');
+      activeSocket.off('call:signal', handleSignal);
+      activeSocket.off('call:peer-joined', createOfferWhenReady);
+      activeSocket.off('call:ended');
+      activeSocket.off('call:peer-left');
       endLocal(false);
     };
   }, [roomId]);
